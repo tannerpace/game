@@ -1,79 +1,41 @@
 import Phaser from 'phaser';
 
 /**
- * MainScene is the primary game scene handling the background,
- * player sprite, bullet mechanics, and user inputs.
+ * MainScene handles the game's background, player, bullets, and input.
  *
  * @extends Phaser.Scene
  */
 export class MainScene extends Phaser.Scene {
-  /**
-   * The scrolling starfield background.
-   *
-   * @type {Phaser.GameObjects.TileSprite}
-   * @private
-   */
+  /** Scrolling starfield background */
   private starfield!: Phaser.GameObjects.TileSprite;
 
-  /**
-   * The player's ship sprite with physics enabled.
-   *
-   * @type {Phaser.Physics.Arcade.Sprite}
-   * @private
-   */
+  /** Player's ship sprite with physics */
   private player!: Phaser.Physics.Arcade.Sprite;
 
-  /**
-   * The keyboard cursor inputs.
-   *
-   * @type {Phaser.Types.Input.Keyboard.CursorKeys}
-   * @private
-   */
+  /** Keyboard input for player control */
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
 
-  /**
-   * A group for bullet game objects.
-   *
-   * @type {Phaser.Physics.Arcade.Group}
-   * @private
-   */
+  /** Group for managing bullet objects */
   private bulletGroup!: Phaser.Physics.Arcade.Group;
 
-  /**
-   * Controls the background scroll speed.
-   *
-   * @type {number}
-   * @private
-   */
+  /** Background scroll speed */
   private backgroundSpeed = 2;
 
-  /**
-   * Creates an instance of MainScene and initializes the scene key.
-   */
+  /** Initialize the scene with its key */
   constructor() {
     super({ key: 'MainScene' });
   }
 
   /**
-   * Preloads assets needed for the scene such as images for the background,
-   * player ship, bullets, and enemies.
-   *
-   * @returns {void}
+   * Preloads assets for the scene.
    */
   preload(): void {
-    // Background and player assets
     this.load.image('starfield', '/assets/starfield.png');
     this.load.image('playerShip', '/assets/playerShip.png');
     this.load.image('player1_ship', '/assets/player1_ship.webp');
-
-    // Bullet asset (using bulletup.webp as the bullet)
     this.load.image('bullet', '/assets/bulletup.png');
-
-    // Additional enemy and obstacle assets
     this.load.image('bug', '/assets/bug.webp');
-    // A second bug sprite, loaded with a different key
     this.load.image('bug2', '/assets/bug.webp');
-
     this.load.image('cloud_obstacle', '/assets/cloud_obstacle.webp');
     this.load.image('heroship', '/assets/heroship.webp');
     this.load.image('low_teir_enemy', '/assets/low_teir_enemy.webp');
@@ -81,122 +43,108 @@ export class MainScene extends Phaser.Scene {
   }
 
   /**
-   * Creates game objects, including the starfield background, player sprite,
-   * bullet group, and sets up keyboard input listeners.
-   *
-   * @returns {void}
+   * Sets up the game objects and input listeners.
    */
   create(): void {
     const { width, height } = this.sys.game.config as { width: number; height: number; };
 
-
-    // Create and add the scrolling starfield background.
+    // Create the scrolling background
     this.starfield = this.add.tileSprite(width / 2, height / 2, width, height, 'starfield');
 
-    ///////////////////
-    // PLAYER
-    ///////////////////
+    // Create the player's ship
+    this.player = this.physics.add.sprite(width / 2, height - 100, 'playerShip').setScale(0.1).setCollideWorldBounds(true);
 
-    // Create the player's ship at the center-bottom of the screen.
-    this.player = this.physics.add.sprite(width / 2, height - 100, 'playerShip');
-    this.player.setScale(0.1); // Scale the ship to a smaller size.
-    this.player.setCollideWorldBounds(true);
+    // Initialize the bullet group
+    this.bulletGroup = this.physics.add.group({ classType: Phaser.Physics.Arcade.Image, maxSize: 130, runChildUpdate: true });
 
-    // Create a group for bullets with a maximum size.
-    this.bulletGroup = this.physics.add.group({
-      classType: Phaser.Physics.Arcade.Image,
-      maxSize: 130,
-      runChildUpdate: true
-    });
-
-    // Setup keyboard events
+    // Handle keyboard input
     if (this.input.keyboard) {
-      // Shoot when SPACE is pressed.
-      this.input.keyboard.on('keydown-SPACE', () => {
-        this.shoot();
-      });
-      // Increase background speed when "W" is pressed.
-      this.input.keyboard.on('keydown-W', () => {
-        this.backgroundSpeed += 1;
-        console.log('Increased background speed:', this.backgroundSpeed);
-      });
-      // Decrease background speed when "S" is pressed.
-      this.input.keyboard.on('keydown-S', () => {
-        this.backgroundSpeed = Math.max(0, this.backgroundSpeed - 1);
-        console.log('Decreased background speed:', this.backgroundSpeed);
-      });
-      // Create the cursor input keys.
+      this.input.keyboard.on('keydown-SPACE', () => this.shoot());
+      this.input.keyboard.on('keydown-W', () => this.adjustBackgroundSpeed(1));
+      this.input.keyboard.on('keydown-S', () => this.adjustBackgroundSpeed(-1));
       this.cursors = this.input.keyboard.createCursorKeys();
     }
   }
 
   /**
-   * Fires a bullet from the player's current position, sets its velocity,
-   * and schedules its deactivation after a set lifespan.
-   *
-   * @returns {void}
+   * Fires a bullet from the player's position.
    */
   shoot(): void {
     const bulletY = this.player.y - this.player.displayHeight / 2;
-
     const bullet = this.bulletGroup.get(this.player.x, bulletY, 'bullet') as Phaser.Physics.Arcade.Image;
 
     if (bullet) {
-      bullet.setActive(true);
-      bullet.setVisible(true);
-      bullet.setPosition(this.player.x, bulletY);
-
-      if (bullet.body) {
-        bullet.body.reset(this.player.x, bulletY);
-      }
-
-      bullet.setVelocityY(-400);
-
-      // Ensure correct scale or size
-      bullet.setScale(0.1); // Adjust to match your asset size
+      bullet.setActive(true).setVisible(true).setPosition(this.player.x, bulletY).setVelocityY(-400).setScale(0.5);
 
       this.time.addEvent({
         delay: 2000,
         callback: () => {
           if (bullet.active && bullet.body) {
-            bullet.setActive(false);
-            bullet.setVisible(false);
-            bullet.body.stop();
+            bullet.setActive(false).setVisible(false).body.stop();
           }
         }
       });
     } else {
-      console.warn('No bullet available in the group.');
+      console.warn('No bullet available.');
     }
   }
 
+  /**
+   * Adjusts the background scroll speed.
+   * @param delta - Amount to change speed by
+   */
+  adjustBackgroundSpeed(delta: number): void {
+    this.backgroundSpeed = Math.max(0, this.backgroundSpeed + delta);
+    console.log('Background speed:', this.backgroundSpeed);
+  }
 
   /**
-   * The main game loop update method.
-   * Scrolls the background and handles player movement based on input.
-   *
-   * @returns {void}
-   */
+  * Updates the game state every frame.
+  */
   update(): void {
-    // Scroll the background vertically based on the current backgroundSpeed.
+    // Scroll background
     this.starfield.tilePositionY -= this.backgroundSpeed;
 
-    // Handle player horizontal movement
-    if (this.cursors!.left!.isDown) {
-      this.player.setVelocityX(-200);
-    } else if (this.cursors!.right!.isDown) {
-      this.player.setVelocityX(200);
+    /**
+     * Calculate a steering factor based on background speed.
+     * Divisor can be adjusted; clamped between 0.2 and 1.
+     * @returns {number} Steering factor.
+     */
+    const steerFactor = Phaser.Math.Clamp(1 - this.backgroundSpeed / 10, 0.2, 1);
+
+    /**
+     * Set horizontal velocity and target tilt angle based on input and steerFactor.
+     * @param {number} steerFactor - Scales movement and tilt.
+     */
+    let targetAngle = 0;
+    if (this.cursors.left.isDown) {
+      this.player.setVelocityX(-200 * steerFactor);
+      targetAngle = -15 * steerFactor;
+    } else if (this.cursors.right.isDown) {
+      this.player.setVelocityX(200 * steerFactor);
+      targetAngle = 15 * steerFactor;
     } else {
       this.player.setVelocityX(0);
     }
 
-    // Handle player vertical movement
-    if (this.cursors!.up!.isDown) {
+    /**
+     * Set vertical velocity based on input.
+     */
+    if (this.cursors.up.isDown) {
       this.player.setVelocityY(-200);
-    } else if (this.cursors!.down!.isDown) {
+    } else if (this.cursors.down.isDown) {
       this.player.setVelocityY(200);
     } else {
       this.player.setVelocityY(0);
     }
+
+    // Smoothly adjust ship's angle
+    const currentAngleRad = Phaser.Math.DegToRad(this.player.angle);
+    const targetAngleRad = Phaser.Math.DegToRad(targetAngle);
+    const newAngleRad = Phaser.Math.Angle.RotateTo(currentAngleRad, targetAngleRad, 0.05);
+    this.player.angle = Phaser.Math.RadToDeg(newAngleRad);
   }
+
+
+
 }
