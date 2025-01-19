@@ -62,10 +62,11 @@ export class MainScene extends Phaser.Scene {
       .setScale(0.1)
       .setCollideWorldBounds(true);
 
-    // Initialize the player's bullet group
+    // Initialize the player's bullet group.
+    // Increase maxSize to allow rapid fire without running out of bullets.
     this.bulletGroup = this.physics.add.group({
       classType: Phaser.Physics.Arcade.Image,
-      maxSize: 130,
+      maxSize: 300,
       runChildUpdate: true,
     });
 
@@ -156,7 +157,11 @@ export class MainScene extends Phaser.Scene {
         .setActive(true)
         .setVisible(true)
         .setPosition(this.player.x, bulletY)
-        .setScale(0.5);
+        // Set bullet scale to be smaller (e.g., 0.3)
+        .setScale(0.3);
+
+      // Rotate the bullet to match the player's angle
+      bullet.angle = this.player.angle;
 
       const bulletSpeed = 400;
       const angleRad = Phaser.Math.DegToRad(-90 + this.player.angle);
@@ -165,6 +170,7 @@ export class MainScene extends Phaser.Scene {
 
       bullet.setVelocity(velocityX, velocityY);
 
+      // Recycle bullet after 2000ms (if still active)
       this.time.addEvent({
         delay: 2000,
         callback: () => {
@@ -188,7 +194,9 @@ export class MainScene extends Phaser.Scene {
       bullet
         .setActive(true)
         .setVisible(true)
-        .setScale(0.5);
+        .setScale(0.3)
+        // Rotate the bullet if needed; for enemy bullets this might be optional.
+        .setAngle(enemy.angle);
 
       // Calculate direction from enemy to player
       const angleRad = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
@@ -198,6 +206,7 @@ export class MainScene extends Phaser.Scene {
         bulletSpeed * Math.sin(angleRad)
       );
 
+      // Recycle bullet after 3000ms (if still active)
       this.time.addEvent({
         delay: 3000,
         callback: () => {
