@@ -67,7 +67,7 @@ export class MainScene extends Phaser.Scene {
     this.load.image('player1_ship', '/assets/player1_ship.webp');
 
     // Bullet asset (using bulletup.webp as the bullet)
-    this.load.image('bullet', '/assets/bulletup.webp');
+    this.load.image('bullet', '/assets/bulletup.png');
 
     // Additional enemy and obstacle assets
     this.load.image('bug', '/assets/bug.webp');
@@ -88,6 +88,7 @@ export class MainScene extends Phaser.Scene {
    */
   create(): void {
     const { width, height } = this.sys.game.config as { width: number; height: number; };
+
 
     // Create and add the scrolling starfield background.
     this.starfield = this.add.tileSprite(width / 2, height / 2, width, height, 'starfield');
@@ -136,30 +137,26 @@ export class MainScene extends Phaser.Scene {
    * @returns {void}
    */
   shoot(): void {
-    // Calculate the bullet's starting Y position using the player's display height.
     const bulletY = this.player.y - this.player.displayHeight / 2;
 
-    // Get an inactive bullet from the group, or create a new one if none are available.
     const bullet = this.bulletGroup.get(this.player.x, bulletY, 'bullet') as Phaser.Physics.Arcade.Image;
 
     if (bullet) {
       bullet.setActive(true);
       bullet.setVisible(true);
-
-      // Position the bullet at the player's current x-coordinate.
       bullet.setPosition(this.player.x, bulletY);
 
-      // Reset the bullet's physics body position.
       if (bullet.body) {
         bullet.body.reset(this.player.x, bulletY);
       }
 
-      // Set the bullet's upward velocity.
       bullet.setVelocityY(-400);
 
-      // Schedule the bullet's deactivation after 2 seconds for potential reuse.
+      // Ensure correct scale or size
+      bullet.setScale(0.1); // Adjust to match your asset size
+
       this.time.addEvent({
-        delay: 2000, // Bullet lifespan in milliseconds (2 seconds)
+        delay: 2000,
         callback: () => {
           if (bullet.active && bullet.body) {
             bullet.setActive(false);
@@ -168,8 +165,11 @@ export class MainScene extends Phaser.Scene {
           }
         }
       });
+    } else {
+      console.warn('No bullet available in the group.');
     }
   }
+
 
   /**
    * The main game loop update method.
