@@ -46,16 +46,23 @@ export class MainScene extends Phaser.Scene {
    * Sets up the game objects and input listeners.
    */
   create(): void {
-    const { width, height } = this.sys.game.config as { width: number; height: number; };
+    const { width, height } = this.sys.game.config as { width: number; height: number };
 
     // Create the scrolling background
     this.starfield = this.add.tileSprite(width / 2, height / 2, width, height, 'starfield');
 
     // Create the player's ship
-    this.player = this.physics.add.sprite(width / 2, height - 100, 'playerShip').setScale(0.1).setCollideWorldBounds(true);
+    this.player = this.physics.add
+      .sprite(width / 2, height - 100, 'playerShip')
+      .setScale(0.1)
+      .setCollideWorldBounds(true);
 
     // Initialize the bullet group
-    this.bulletGroup = this.physics.add.group({ classType: Phaser.Physics.Arcade.Image, maxSize: 130, runChildUpdate: true });
+    this.bulletGroup = this.physics.add.group({
+      classType: Phaser.Physics.Arcade.Image,
+      maxSize: 130,
+      runChildUpdate: true,
+    });
 
     // Handle keyboard input
     if (this.input.keyboard) {
@@ -68,13 +75,25 @@ export class MainScene extends Phaser.Scene {
 
   /**
    * Fires a bullet from the player's position.
+   * The bullet is fired at an angle based on the ship's current rotation.
    */
   shoot(): void {
     const bulletY = this.player.y - this.player.displayHeight / 2;
+    // Get a bullet from the pool
     const bullet = this.bulletGroup.get(this.player.x, bulletY, 'bullet') as Phaser.Physics.Arcade.Image;
 
     if (bullet) {
-      bullet.setActive(true).setVisible(true).setPosition(this.player.x, bulletY).setVelocityY(-400).setScale(0.5);
+      bullet.setActive(true).setVisible(true).setPosition(this.player.x, bulletY).setScale(0.5);
+
+      // Base bullet speed
+      const bulletSpeed = 400;
+      // Calculate bullet firing angle
+      // The base direction is up (-90°) plus the ship's current angle.
+      const angleRad = Phaser.Math.DegToRad(-90 + this.player.angle);
+      const velocityX = bulletSpeed * Math.cos(angleRad);
+      const velocityY = bulletSpeed * Math.sin(angleRad);
+
+      bullet.setVelocity(velocityX, velocityY);
 
       this.time.addEvent({
         delay: 2000,
@@ -82,7 +101,7 @@ export class MainScene extends Phaser.Scene {
           if (bullet.active && bullet.body) {
             bullet.setActive(false).setVisible(false).body.stop();
           }
-        }
+        },
       });
     } else {
       console.warn('No bullet available.');
@@ -99,15 +118,15 @@ export class MainScene extends Phaser.Scene {
   }
 
   /**
-  * Updates the game state every frame.
-  */
+   * Updates the game state every frame.
+   */
   update(): void {
     // Scroll background
     this.starfield.tilePositionY -= this.backgroundSpeed;
 
     /**
      * Calculate a steering factor based on background speed.
-     * Divisor can be adjusted; clamped between 0.2 and 1.
+     * Divisor adjustable; clamped between 0.2 and 1.
      * @returns {number} Steering factor.
      */
     const steerFactor = Phaser.Math.Clamp(1 - this.backgroundSpeed / 10, 0.2, 1);
@@ -138,13 +157,9 @@ export class MainScene extends Phaser.Scene {
       this.player.setVelocityY(0);
     }
 
-    // Smoothly adjust ship's angle
     const currentAngleRad = Phaser.Math.DegToRad(this.player.angle);
     const targetAngleRad = Phaser.Math.DegToRad(targetAngle);
     const newAngleRad = Phaser.Math.Angle.RotateTo(currentAngleRad, targetAngleRad, 0.05);
     this.player.angle = Phaser.Math.RadToDeg(newAngleRad);
   }
-
-
-
 }
