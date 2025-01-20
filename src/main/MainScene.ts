@@ -11,12 +11,55 @@ export class MainScene extends Phaser.Scene {
   private backgroundSpeed = 2;
   private playerHealth = 100;
   private healthText!: Phaser.GameObjects.Text;
-  // private shootSound!: Phaser.Sound.BaseSound;
+  private shootSound!: Phaser.Sound.BaseSound;
   private hitSound!: Phaser.Sound.BaseSound;
+
+
 
   constructor() {
     super({ key: 'MainScene' });
+    this.highScore = this.retrieveHighScore();
   }
+
+
+  retrieveHighScore(): number {
+    const savedScore = localStorage.getItem('highScore');
+    return savedScore ? parseInt(savedScore) : 0;
+  }
+
+  private gameOverText!: Phaser.GameObjects.Text;
+  private retryButton!: Phaser.GameObjects.Text;
+  private highScore: Phaser.GameObjects.Text;
+  private reducePlayerHealth(damage: number): void {
+    this.playerHealth -= damage;
+    this.healthText.setText(`Health: ${this.playerHealth}`);
+
+    if (this.playerHealth <= 0) {
+      this.playerHealth = 0;
+      this.gameOver();
+    }
+  }
+
+  private gameOver(): void {
+    this.physics.pause(); // Pause game physics or stop all game movements
+    this.player.setTint(0xff0000); // Optional: change player color to indicate damage
+
+    // Display 'Game Over' text
+    this.gameOverText = this.add.text(this.sys.game.config.width as number / 2, this.sys.game.config.height as number / 2, 'Game Over', {
+      fontSize: '40px',
+      color: '#ff0000'
+    }).setOrigin(0.5);
+    this.backgroundSpeed = 0;
+
+    // Display retry button
+    this.retryButton = this.add.text(this.sys.game.config.width as number / 2, (this.sys.game.config.height as number / 2) + 50, 'Retry', {
+      fontSize: '30px',
+      color: '#00ff00'
+    }).setOrigin(0.5).setInteractive();
+
+    this.retryButton.on('pointerdown', () => this.scene.restart()); // Restart the current scene
+  }
+
 
   preload(): void {
     const assets = {
@@ -27,10 +70,10 @@ export class MainScene extends Phaser.Scene {
         bug: 'bug.png',
         cloud_obstacle: 'cloud_obstacle.png',
         low_teir_enemy: 'low_teir_enemy.png',
-        mid_tier_enemy: 'heroship.webp',
+        mid_tier_enemy: 'heroship.png',
       },
       sounds: {
-        // shootSound: 'shoot.mp3',
+        shootSound: 'shoot.aac',
         hitSound: 'hit.aac',
         music: 'music.aac',
       },
@@ -50,6 +93,12 @@ export class MainScene extends Phaser.Scene {
     const music = this.sound.add('music', { loop: true });
     music?.play();
 
+
+
+
+
+
+
     this.starfield = this.add.tileSprite(width / 2, height / 2, width, height, 'starfield');
 
     this.player = this.physics.add.sprite(width / 2, height - 100, 'playerShip')
@@ -61,7 +110,7 @@ export class MainScene extends Phaser.Scene {
       color: '#ffffff',
     });
 
-    // this.shootSound = this.sound.add('shootSound')!;
+    this.shootSound = this.sound.add('shootSound')!;
     this.hitSound = this.sound.add('hitSound')!;
 
     this.bulletGroup = this.physics.add.group({
@@ -71,6 +120,10 @@ export class MainScene extends Phaser.Scene {
     });
 
     this.obstacleGroup = this.physics.add.group();
+    this.obstacleGroup.setHitArea(30, () => {
+      console.log("colistion")
+      return true
+    })
     this.midTierEnemies = this.physics.add.group();
     this.enemyBulletGroup = this.physics.add.group({
       classType: Phaser.Physics.Arcade.Image,
@@ -87,6 +140,7 @@ export class MainScene extends Phaser.Scene {
         const x = Phaser.Math.Between(50, width - 50);
         const sprite = this.obstacleGroup.create(x, -50, type) as Phaser.Physics.Arcade.Sprite;
         sprite?.setVelocityY(this.backgroundSpeed * 50);
+        sprite.setScale(.2)
       },
     });
 
@@ -135,48 +189,51 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
-  private reducePlayerHealth(damage: number): void {
-    this.playerHealth -= damage;
-    if (this.playerHealth < 0) {
-      this.playerHealth = 0;
-    }
-    this.healthText?.setText(`Health: ${this.playerHealth}`);
-    if (this.playerHealth === 0) {
-      console.log('Game Over!');
-    }
-  }
-
   shoot(): void {
+    this.shootSound.play()
     const bulletY = this.player.y - this.player.displayHeight / 2;
     const bullet = this.bulletGroup.get(this.player.x, bulletY, 'bullet') as Phaser.Physics.Arcade.Image;
 
     if (bullet) {
-      bullet.setActive(true).setVisible(true).setPosition(this.player.x, bulletY).setScale(0.3);
-      bullet.angle = this.player.angle;
+      const angleRad = Phaser.Math.DegToRad(-90 + this.player.angle);
+      bullet
+        .setActive(true)
+        .setVisible(true)
+        .setPosition(this.player.x, bulletY)
+        .setScale(0.3)
+        .setAngle(angleRad);  //  adjusted this to the same angle as ship
 
       const bulletSpeed = 400;
-      const angleRad = Phaser.Math.DegToRad(-90 + this.player.angle);
+
       const velocityX = bulletSpeed * Math.cos(angleRad);
       const velocityY = bulletSpeed * Math.sin(angleRad);
 
       bullet.setVelocity(velocityX, velocityY);
 
-      // this.shootSound?.play();
-
       this.time.addEvent({
         delay: 2000,
         callback: () => {
-          bullet?.setActive(false).setVisible(false).body?.stop();
+          if (bullet.active && bullet.body) {
+            bullet.setActive(false).setVisible(false).body.stop();
+          }
         },
       });
+    } else {
+      console.warn('No bullet available.');
     }
   }
+
 
   enemyShoot(enemy: Phaser.Physics.Arcade.Sprite): void {
     const bullet = this.enemyBulletGroup.get(enemy.x, enemy.y, 'bullet') as Phaser.Physics.Arcade.Image;
     if (bullet) {
-      bullet.setActive(true).setVisible(true).setScale(0.3).setAngle(enemy.angle);
+      bullet
+        .setActive(true)
+        .setVisible(true)
+        .setScale(0.3)  // Consistent smaller scale for enemy bullets
+        .setAngle(180);  // Rotate bullet to point downwards
 
+      // Calculate direction from enemy to player
       const angleRad = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
       const bulletSpeed = 300;
       bullet.setVelocity(
@@ -187,11 +244,14 @@ export class MainScene extends Phaser.Scene {
       this.time.addEvent({
         delay: 3000,
         callback: () => {
-          bullet?.setActive(false).setVisible(false).body?.stop();
+          if (bullet.active && bullet.body) {
+            bullet.setActive(false).setVisible(false).body.stop();
+          }
         },
       });
     }
   }
+
 
   adjustBackgroundSpeed(delta: number): void {
     this.backgroundSpeed = Math.max(0, this.backgroundSpeed + delta);
