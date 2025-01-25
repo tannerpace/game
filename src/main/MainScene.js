@@ -4,6 +4,7 @@ import Player from './Player';
 const assets = {
   images: {
     starfield: 'starfield.png',
+    stars: 'stars2.png',
     bug: 'bug.png',
     cloud_obstacle: 'cloud_obstacle.png',
     low_tier_enemy: 'low_tier_enemy.png',
@@ -19,7 +20,9 @@ export class MainScene extends Phaser.Scene {
   constructor() {
     super({ key: 'MainScene' });
     this.highScore = this.retrieveHighScore();
-    this.starfield = null;
+    this.stars = null;
+    this.starfieldBack = null;
+    this.starfieldFront = null;
     this.player = new Player(this);
     this.backgroundSpeed = 2;
     this.gameOverText = null;
@@ -43,7 +46,7 @@ export class MainScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.sys.game.config;
-    // this.starfield = this.add.tileSprite(width / 2, height / 2, width, height, 'starfield');
+    this.stars = this.add.tileSprite(width / 2, 0, 0, 0, 'stars');
     this.starfieldBack = this.add.tileSprite(width / 2, height / 2, width, height, 'starfield');
     this.starfieldFront = this.add.tileSprite(width / 2, height / 2, width, height, 'starfield');
     this.player.create();
@@ -120,7 +123,7 @@ export class MainScene extends Phaser.Scene {
 
   update() {
     this.player.update();
-    // this.starfield.tilePositionY -= this.backgroundSpeed;
+    this.stars.tilePositionY -= this.backgroundSpeed / 0.9; // Slower back
     this.starfieldBack.tilePositionY -= this.backgroundSpeed * 0.5; // Slower back
     this.starfieldFront.tilePositionY -= this.backgroundSpeed; // Faster foreground
   }
