@@ -1,5 +1,0 @@
-# TO START
-
-```
-yarn vite
-```

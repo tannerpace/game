@@ -80,11 +80,11 @@ export class MainScene extends Phaser.Scene {
     };
 
     for (const [key, file] of Object.entries(assets.images)) {
-      this.load.image(key, `/assets/${file}`);
+      this.load.image(key, `/assets/images/${file}`);
     }
 
     for (const [key, file] of Object.entries(assets.sounds)) {
-      this.load.audio(key, `/assets/${file}`);
+      this.load.audio(key, `/assets/sounds/${file}`);
     }
   }
 
@@ -92,15 +92,7 @@ export class MainScene extends Phaser.Scene {
     const { width, height } = this.sys.game.config as { width: number; height: number };
     const music = this.sound.add('music', { loop: true });
     music?.play();
-
-
-
-
-
-
-
     this.starfield = this.add.tileSprite(width / 2, height / 2, width, height, 'starfield');
-
     this.player = this.physics.add.sprite(width / 2, height - 100, 'playerShip')
       .setScale(0.1)
       .setCollideWorldBounds(true);
