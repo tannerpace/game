@@ -94,6 +94,9 @@ export default class Player {
     this.healthText.setText(`Health: ${this.health}`);
   }
 
+
+
+
   takeDamage(amount) {
     this.health -= amount;
     if (this.health <= 0) {
