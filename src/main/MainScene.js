@@ -1,24 +1,26 @@
 import Phaser from 'phaser';
 import Player from './Player';
+
 const assets = {
   images: {
     starfield: 'starfield.png',
     bug: 'bug.png',
     cloud_obstacle: 'cloud_obstacle.png',
     low_tier_enemy: 'low_tier_enemy.png',
-    mid_tier_enemy: 'heroship.png', // Adjust if this is incorrectly named
+    mid_tier_enemy: 'starshipred.png',
   },
   sounds: {
     hitSound: 'hit.aac',
     music: 'music.aac',
   }
 };
+
 export class MainScene extends Phaser.Scene {
   constructor() {
     super({ key: 'MainScene' });
     this.highScore = this.retrieveHighScore();
     this.starfield = null;
-    this.player = new Player(this); // Instantiate the player object
+    this.player = new Player(this);
     this.backgroundSpeed = 2;
     this.gameOverText = null;
     this.retryButton = null;
@@ -30,12 +32,12 @@ export class MainScene extends Phaser.Scene {
   }
 
   preload() {
-    Object.entries(assets.images).forEach(([key, path]) => {
+    for (const [key, path] of Object.entries(assets.images)) {
       this.load.image(key, `/assets/images/${path}`);
-    });
-    Object.entries(assets.sounds).forEach(([key, path]) => {
+    }
+    for (const [key, path] of Object.entries(assets.sounds)) {
       this.load.audio(key, `/assets/sounds/${path}`);
-    });
+    }
     this.player.preload();
   }
 
@@ -43,7 +45,6 @@ export class MainScene extends Phaser.Scene {
     const { width, height } = this.sys.game.config;
     this.starfield = this.add.tileSprite(width / 2, height / 2, width, height, 'starfield');
     this.player.create();
-
     const music = this.sound.add('music', { loop: true });
     music.play();
 
@@ -53,7 +54,6 @@ export class MainScene extends Phaser.Scene {
   }
 
   setupGroups() {
-    this.midTierEnemies = this.physics.add.group();
     this.bulletGroup = this.physics.add.group({
       classType: Phaser.Physics.Arcade.Image,
       maxSize: 300,
@@ -64,11 +64,12 @@ export class MainScene extends Phaser.Scene {
       maxSize: 50,
       runChildUpdate: true
     });
+    this.midTierEnemies = this.physics.add.group();
   }
 
   setupInteractions() {
-    this.physics.add.collider(this.bulletGroup, this.midTierEnemies, this.handleBulletEnemyCollision, null, this);
-    this.physics.add.collider(this.enemyBulletGroup, this.player.sprite, this.handleEnemyBulletPlayerCollision, null, this);
+    this.physics.add.overlap(this.bulletGroup, this.midTierEnemies, this.handleBulletEnemyCollision, null, this);
+    this.physics.add.overlap(this.enemyBulletGroup, this.player.sprite, this.handleEnemyBulletPlayerCollision, null, this);
   }
 
   handleBulletEnemyCollision(bullet, enemy) {
@@ -90,13 +91,12 @@ export class MainScene extends Phaser.Scene {
       callback: () => {
         const x = Phaser.Math.Between(50, this.sys.game.config.width - 50);
         const type = Phaser.Utils.Array.GetRandom(enemyTypes);
-        const enemy = this.midTierEnemies.create(x, 0, type);
+        const enemy = this.midTierEnemies.create(x, 0, type).setScale(.15);
+
         enemy.setVelocityY(100);
-        console.log(`Spawned ${type} at x: ${x}`);
       }
     });
   }
-
 
   update() {
     this.player.update();
@@ -115,6 +115,10 @@ export class MainScene extends Phaser.Scene {
       fontSize: '30px',
       color: '#00ff00'
     }).setOrigin(0.5).setInteractive();
-    this.retryButton.on('pointerdown', () => this.scene.restart());
+    this.retryButton.on('pointerdown', this.restartGame, this);
+  }
+
+  restartGame() {
+    this.scene.restart();
   }
 }

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 const assets = {
   images: {
     playerShip: 'heroship.png',
-    bullet: 'bulletup.png', // Presuming you need this for the bullet sprite later
+    bullet: 'bulletup .png',
   },
   sounds: {
     shootSound: 'shoot.aac',
@@ -10,15 +10,14 @@ const assets = {
 };
 export default class Player {
   constructor(scene) {
-    this.scene = scene; // Link to the Phaser scene to access game methods and properties
-    this.sprite = null; // Placeholder for the player's sprite
-    this.health = 100; // Starting health for the player
-    this.healthText = null; // Text display for health
-    this.shootSound = null; // Sound effect for shooting
+    this.scene = scene;
+    this.sprite = null;
+    this.health = 100;
+    this.healthText = null;
+    this.shootSound = null;
   }
 
   preload() {
-    // Use this.scene.load to access the correct Phaser loader context
     for (const [key, file] of Object.entries(assets.images)) {
       this.scene.load.image(key, `/assets/images/${file}`);
     }
@@ -72,15 +71,22 @@ export default class Player {
 
   shoot() {
     if (!this.sprite) {
+      console.log("No player sprite available for shooting.");
       return;
     }
 
     this.shootSound.play();
-    const bulletY = this.sprite.y - this.sprite.displayHeight / 2;
-    const bullet = this.scene.bullets.getBullet(this.sprite.x, bulletY);
+    const bulletY = this.sprite.y - this.sprite.displayHeight / 13;
+    const bullet = this.scene.bulletGroup.get(this.sprite.x, bulletY, 'bullet');
 
     if (bullet) {
-      bullet.fire(this.sprite.x, bulletY, -90);
+      console.log("Bullet created at:", this.sprite.x, bulletY);
+      bullet.setActive(true);
+      bullet.setVisible(true);
+      // neg is up
+      bullet.setVelocityY(-340);
+    } else {
+      console.log("Failed to create bullet.");
     }
   }
 
