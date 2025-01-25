@@ -43,7 +43,9 @@ export class MainScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.sys.game.config;
-    this.starfield = this.add.tileSprite(width / 2, height / 2, width, height, 'starfield');
+    // this.starfield = this.add.tileSprite(width / 2, height / 2, width, height, 'starfield');
+    this.starfieldBack = this.add.tileSprite(width / 2, height / 2, width, height, 'starfield');
+    this.starfieldFront = this.add.tileSprite(width / 2, height / 2, width, height, 'starfield');
     this.player.create();
     const music = this.sound.add('music', { loop: true });
     music.play();
@@ -83,6 +85,8 @@ export class MainScene extends Phaser.Scene {
     this.player.takeDamage(10);
   }
 
+
+
   spawnEnemies() {
     const enemyTypes = ['bug', 'low_tier_enemy', 'mid_tier_enemy', 'cloud_obstacle'];
     this.time.addEvent({
@@ -91,16 +95,34 @@ export class MainScene extends Phaser.Scene {
       callback: () => {
         const x = Phaser.Math.Between(50, this.sys.game.config.width - 50);
         const type = Phaser.Utils.Array.GetRandom(enemyTypes);
-        const enemy = this.midTierEnemies.create(x, 0, type).setScale(.15);
+        const enemy = this.midTierEnemies.create(x, 0, type).setScale(0.15);
 
-        enemy.setVelocityY(100);
+        // cloud obstacle effects
+        if (type === 'cloud_obstacle') {
+          enemy.setAlpha(Phaser.Math.FloatBetween(0.3, 0.7)); // Random transparency
+          enemy.setBlendMode(Phaser.BlendModes.ADD); // Light blending mode for a natural cloud effect
+          // cloud effects move a little 
+          this.tweens.add({
+            targets: enemy,
+            x: enemy.x + Phaser.Math.Between(-10, 10),
+            duration: 2000,
+            yoyo: true, // Move back and forth
+            repeat: -1, // Repeats forever
+            ease: 'Sine.easeInOut'
+          });
+        }
+
+        enemy.setVelocityY(100); // Vertical movement for all enemies
       }
     });
   }
 
+
   update() {
     this.player.update();
-    this.starfield.tilePositionY -= this.backgroundSpeed;
+    // this.starfield.tilePositionY -= this.backgroundSpeed;
+    this.starfieldBack.tilePositionY -= this.backgroundSpeed * 0.5; // Slower back
+    this.starfieldFront.tilePositionY -= this.backgroundSpeed; // Faster foreground
   }
 
   gameOver() {

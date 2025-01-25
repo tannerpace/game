@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
+import { transform } from 'typescript';
 const assets = {
   images: {
-    playerShip: 'heroship.png',
+    falc: 'falc.png',
     bullet: 'bulletup .png',
   },
   sounds: {
@@ -29,7 +30,7 @@ export default class Player {
 
   create() {
     const { width, height } = this.scene.sys.game.config;
-    this.sprite = this.scene.physics.add.sprite(width / 2, height - 100, 'playerShip')
+    this.sprite = this.scene.physics.add.sprite(width / 2, height - 100, 'falc')
       .setScale(0.1)
       .setCollideWorldBounds(true);
 
@@ -83,7 +84,6 @@ export default class Player {
       console.log("Bullet created at:", this.sprite.x, bulletY);
       bullet.setActive(true);
       bullet.setVisible(true);
-      // neg is up
       bullet.setVelocityY(-340);
     } else {
       console.log("Failed to create bullet.");
