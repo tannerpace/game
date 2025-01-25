@@ -5,6 +5,10 @@
   "repository": "https://github.com/tannerpace/game.git",
   "author": "TannerB <tannerpace@gmail.com>",
   "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
   "dependencies": {
     "phaser": "^3.87.0"
   },
