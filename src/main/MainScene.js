@@ -1,7 +1,16 @@
 import Phaser from 'phaser';
 import Player from './Player';
 
-const assets = {
+const CONFIG = {
+  enemyTypes: ['bug', 'low_tier_enemy', 'mid_tier_enemy', 'cloud_obstacle'],
+  damage: {
+    player: 10,
+    enemy: 20,
+  },
+  sounds: {
+    hitSound: 'hit.aac',
+    music: 'music.aac',
+  },
   images: {
     starfield: 'starfield.png',
     stars: 'stars2.png',
@@ -9,12 +18,54 @@ const assets = {
     cloud_obstacle: 'cloud_obstacle.png',
     low_tier_enemy: 'low_tier_enemy.png',
     mid_tier_enemy: 'starshipred.png',
-  },
-  sounds: {
-    hitSound: 'hit.aac',
-    music: 'music.aac',
   }
 };
+
+class AssetLoader {
+  static loadImages(scene) {
+    for (const [key, path] of Object.entries(CONFIG.images)) {
+      scene.load.image(key, `/assets/images/${path}`);
+    }
+  }
+
+  static loadSounds(scene) {
+    for (const [key] of Object.entries(CONFIG.sounds)) {
+      scene.load.audio(key, `/assets/sounds/${CONFIG.sounds[key]}`);
+    }
+  }
+}
+
+class EnemyManager {
+  constructor(scene) {
+    this.scene = scene;
+    this.midTierEnemies = this.scene.physics.add.group();
+  }
+
+  spawnEnemies() {
+    this.scene.time.addEvent({
+      delay: 3000,
+      loop: true,
+      callback: () => {
+        const x = Phaser.Math.Between(50, this.scene.sys.game.config.width - 50);
+        const type = Phaser.Utils.Array.GetRandom(CONFIG.enemyTypes);
+        const enemy = this.midTierEnemies.create(x, 0, type).setScale(0.15);
+        if (type === 'cloud_obstacle') {
+          enemy.setAlpha(Phaser.Math.FloatBetween(0.3, 0.7));
+          enemy.setBlendMode(Phaser.BlendModes.ADD);
+          this.scene.tweens.add({
+            targets: enemy,
+            x: enemy.x + Phaser.Math.Between(-10, 10),
+            duration: 2000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+          });
+        }
+        enemy.setVelocityY(100);
+      }
+    });
+  }
+}
 
 export class MainScene extends Phaser.Scene {
   constructor() {
@@ -35,12 +86,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   preload() {
-    for (const [key, path] of Object.entries(assets.images)) {
-      this.load.image(key, `/assets/images/${path}`);
-    }
-    for (const [key, path] of Object.entries(assets.sounds)) {
-      this.load.audio(key, `/assets/sounds/${path}`);
-    }
+    AssetLoader.loadImages(this);
+    AssetLoader.loadSounds(this);
     this.player.preload();
   }
 
@@ -53,81 +100,25 @@ export class MainScene extends Phaser.Scene {
     const music = this.sound.add('music', { loop: true });
     music.play();
 
-    this.setupGroups();
+    this.enemyManager = new EnemyManager(this);
+    this.enemyManager.spawnEnemies();
+
     this.setupInteractions();
-    this.spawnEnemies();
   }
-
-  setupGroups() {
-    this.bulletGroup = this.physics.add.group({
-      classType: Phaser.Physics.Arcade.Image,
-      maxSize: 300,
-      runChildUpdate: true
-    });
-    this.enemyBulletGroup = this.physics.add.group({
-      classType: Phaser.Physics.Arcade.Image,
-      maxSize: 50,
-      runChildUpdate: true
-    });
-    this.midTierEnemies = this.physics.add.group();
-  }
-
 
   setupInteractions() {
-    this.physics.add.overlap(this.bulletGroup, this.midTierEnemies, this.handleBulletEnemyCollision, null, this);
-    this.physics.add.overlap(this.enemyBulletGroup, this.player.sprite, this.handleEnemyBulletPlayerCollision, null, this);
-    this.physics.add.overlap(this.player.sprite, this.midTierEnemies, this.handlePlayerEnemyCollision, null, this);
-  }
-
-  handlePlayerEnemyCollision(playerSprite, enemy) {
-    enemy.disableBody(true, true);
-    this.sound.play('hitSound');
-    this.player.takeDamage(20);// TODO : make clouds only slow
-  }
-
-
-  handleBulletEnemyCollision(bullet, enemy) {
-    bullet.disableBody(true, true);
-    enemy.disableBody(true, true);
-    this.sound.play('hitSound');
+    this.physics.add.overlap(this.enemyManager.midTierEnemies, this.player.sprite, (playerSprite, enemy) => {
+      enemy.disableBody(true, true);
+      this.sound.play('hitSound');
+      this.player.takeDamage(CONFIG.damage.enemy);
+    }, null, this);
+    this.physics.add.overlap(this.enemyManager.midTierEnemies, this.player.sprite, this.handleEnemyBulletPlayerCollision, null, this);
   }
 
   handleEnemyBulletPlayerCollision(bullet) {
     bullet.disableBody(true, true);
-    this.player.takeDamage(10);
+    this.player.takeDamage(CONFIG.damage.player);
   }
-
-
-
-  spawnEnemies() {
-    const enemyTypes = ['bug', 'low_tier_enemy', 'mid_tier_enemy', 'cloud_obstacle'];
-    this.time.addEvent({
-      delay: 3000,
-      loop: true,
-      callback: () => {
-        const x = Phaser.Math.Between(50, this.sys.game.config.width - 50);
-        const type = Phaser.Utils.Array.GetRandom(enemyTypes);
-        const enemy = this.midTierEnemies.create(x, 0, type).setScale(0.15);
-
-        // cloud obstacle effects
-        if (type === 'cloud_obstacle') {
-          enemy.setAlpha(Phaser.Math.FloatBetween(0.3, 0.7));
-          enemy.setBlendMode(Phaser.BlendModes.ADD);
-          this.tweens.add({
-            targets: enemy,
-            x: enemy.x + Phaser.Math.Between(-10, 10),
-            duration: 2000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-          });
-        }
-
-        enemy.setVelocityY(100); // Vertical movement for all enemies
-      }
-    });
-  }
-
 
   update() {
     this.player.update();
