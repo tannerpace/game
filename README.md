@@ -24,4 +24,4 @@ Before you can run the game, make sure you have the following installed:
 3. Run:
     ```bash
    yarn dev
-   ```   ```
+   ```  
