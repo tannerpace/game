@@ -18,3 +18,10 @@ Before you can run the game, make sure you have the following installed:
    git clone https://github.com/tannerpace/game.git
    cd game
    ```
+2. Install:
+    ```bash
+   yarn install
+3. Run:
+    ```bash
+   yarn dev
+   ```   ```
